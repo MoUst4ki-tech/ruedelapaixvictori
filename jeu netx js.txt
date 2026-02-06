@@ -1,0 +1,10 @@
+jeu netx.js
+
+5mini jeux + 1 impossible
+
+adam = pong
+victor = pacman
+flo = snake
+tanys = quizz
+noe = last games
+ewan = ????
