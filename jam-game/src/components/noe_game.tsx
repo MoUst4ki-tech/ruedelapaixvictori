@@ -11,10 +11,9 @@ const MarioGame: React.FC = () => {
         let player: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
         let platforms: Phaser.Physics.Arcade.StaticGroup;
         let cursors: Phaser.Types.Input.Keyboard.CursorKeys;
-        
-        // Variables pour le Glitch
+        let loopTimer: Phaser.Time.TimerEvent;
         let wallcount = 0;
-        const wallaie = 100; // Seuil réduit pour faciliter le test
+        const wallaie = 100;
 
         const config: Phaser.Types.Core.GameConfig = {
             type: Phaser.AUTO,
@@ -45,11 +44,15 @@ const MarioGame: React.FC = () => {
             this.load.spritesheet('player-left', '/mario/walk-left.png', { frameWidth: 221, frameHeight: 355 });
         }
 
-        // --- FONCTION DE FIN SECRÈTE ---
         function triggerSecretEnd(scene: Phaser.Scene) {
+
+            if (loopTimer) {
+                loopTimer.remove();
+                console.log("Boucle temporelle détruite.");
+            }
+
             scene.physics.pause();
             
-            // On utilise les dimensions de la caméra, pas du monde
             const screenCenterX = scene.cameras.main.width / 2;
             const screenCenterY = scene.cameras.main.height / 2;
 
@@ -68,7 +71,7 @@ const MarioGame: React.FC = () => {
                 color: '#00ff00',
                 backgroundColor: '#000000',
                 padding: { x: 10, y: 10 }
-            }).setOrigin(0.5).setDepth(100).setScrollFactor(0); // Fixé à l'écran
+            }).setOrigin(0.5).setDepth(100).setScrollFactor(0); 
 
             let currentLine = 0;
             scene.time.addEvent({
@@ -84,7 +87,6 @@ const MarioGame: React.FC = () => {
             scene.time.delayedCall(5000, () => {
                 consoleText.destroy();
                 
-                // Fond noir qui couvre tout l'écran
                 const blackBg = scene.add.rectangle(screenCenterX, screenCenterY, 800, 600, 0x000000)
                     .setScrollFactor(0)
                     .setDepth(99)
@@ -119,7 +121,6 @@ const MarioGame: React.FC = () => {
         }
 
         function create(this: Phaser.Scene) {
-            // 1. Configuration du Monde
             const chunkWidth = 800; 
             const totalChunks = 10; 
             const levelWidth = chunkWidth * totalChunks;
@@ -128,7 +129,6 @@ const MarioGame: React.FC = () => {
             const bg = this.add.image(400, 300, 'background');
             bg.setScrollFactor(0);
 
-            // 2. Création des Plateformes
             platforms = this.physics.add.staticGroup();
             const ground = this.add.tileSprite(levelWidth / 2, 584, levelWidth, 100, 'ground');
             this.physics.add.existing(ground, true);
@@ -138,7 +138,7 @@ const MarioGame: React.FC = () => {
                 { x: 150, y: 450, width: 250 },
                 { x: 600, y: 425, width: 350 },
                 { x: 300, y: 280, width: 400 },
-                { x: 580, y: 380, width: 50 } // C'est celle-ci la cible du Glitch
+                { x: 580, y: 380, width: 50 } 
             ];
 
             for (let i = 0; i < totalChunks; i++) {
@@ -150,7 +150,7 @@ const MarioGame: React.FC = () => {
                 });
             }
 
-            // 3. Animations
+
             const createAnimFromTexture = (scene: Phaser.Scene, animKey: string, textureKey: string, frameRate: number) => {
                 if (!scene.textures.exists(textureKey)) return;
                 const texture = scene.textures.get(textureKey);
@@ -170,67 +170,70 @@ const MarioGame: React.FC = () => {
                 }
             }
 
-            // 4. CRÉATION DU JOUEUR (Important : Avant le timer !)
+
             player = this.physics.add.sprite(100, 450, 'player-right') as Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
             player.setScale(0.15); 
             player.refreshBody(); 
             player.setBounce(0.1);
             player.setCollideWorldBounds(true);
 
-            // 5. LA BOUCLE TEMPORELLE (Le Timer de 15s)
             const spawnX = player.x;
             const spawnY = player.y;
+            
+            const timerText = this.add.text(10, 10, 'WAITING FOR INPUT...', { 
+                color: '#ffffff', 
+                fontSize: '20px', 
+                backgroundColor: '#000000' 
+            }).setScrollFactor(0).setDepth(1000);
 
-            // On attend la première touche appuyée pour lancer le chrono
+
             this.input.keyboard?.once('keydown', () => {
-                console.log("Timer activé : 15 secondes avant reset.");
-                
-                // Petit texte pour prévenir le joueur
-                const timerText = this.add.text(10, 10, 'TIME LOOP ACTIVE: 15s', { color: 'red', fontSize: '20px' }).setScrollFactor(0);
+                timerText.setText('TIME LOOP ACTIVE: 15s');
+                timerText.setColor('#ff0000');
 
-                this.time.delayedCall(15000, () => {
-                    // RESET DU JOUEUR
-                    player.setPosition(spawnX, spawnY);
-                    player.setVelocity(0, 0);
-                    
-                    // Feedback visuel (Flash rouge)
-                    this.cameras.main.flash(500, 255, 0, 0);
-                    timerText.setText("LOOP RESET");
-                    
-                    // Optionnel : Relancer le timer pour une boucle infinie
-                    // (Ici ça ne le fait qu'une fois, il faudrait mettre ça dans une fonction récursive pour l'infini)
+                loopTimer = this.time.addEvent({
+                    delay: 15000, 
+                    loop: true,  
+                    callback: () => {
+
+                        player.setPosition(spawnX, spawnY);
+                        player.setVelocity(0, 0);
+                        player.clearTint(); 
+                        wallcount = 0; 
+
+                
+                        this.cameras.main.flash(500, 255, 0, 0);
+                        this.cameras.main.shake(200, 0.01);
+                        
+                        console.log("Boucle reset !");
+                    }
                 });
             });
 
-            // 6. COLLISIONS ET GLITCH
+    
             this.physics.add.collider(player, platforms, (obj1, obj2) => {
                 const p = obj1 as Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
                 const platform = obj2 as Phaser.GameObjects.TileSprite;
                 
-                // On cible uniquement la petite plateforme de 50px de large
                 const isPlatform4 = platform.width === 50; 
 
-                // Le glitch s'active si on pousse à GAUCHE contre le mur (flanc droit de la plateforme)
                 if (isPlatform4 && cursors.left.isDown && p.body.blocked.left) {
                     wallcount++;
                     
-                    // Effet visuel
-                    if (wallcount % 5 === 0) p.setTint(0xff0000); // Rouge
-                    else p.clearTint(); // Normal
+                    if (wallcount % 5 === 0) p.setTint(0xff0000); 
+                    else p.clearTint(); 
 
-                    // Tremblement léger
                     this.cameras.main.shake(50, 0.002);
 
                     if (wallcount > wallaie) {
                         triggerSecretEnd(this);
                     }
                 } else {
-                    // Si on ne force pas, on reset le compteur (ou pas, selon la difficulté voulue)
                     p.clearTint();
                 }
             });
 
-            // 7. Caméra et Contrôles
+        
             this.cameras.main.setBounds(0, 0, levelWidth, 600);
             this.cameras.main.startFollow(player, true, 0.1, 0.1);
 
