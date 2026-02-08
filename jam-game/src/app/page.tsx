@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic';
 
 const Game = dynamic(() => import('@/components/Game'), { ssr: false });
+const Pong = dynamic(() => import('@/components/AdamGame'), { ssr: false });
 const My_PacMan = dynamic(() => import('@/components/PacMan'), { ssr: false });
 const NoeGame = dynamic(() => import('@/components/noe_game'), { ssr: false });
 
@@ -21,6 +22,9 @@ export default function Home() {
       <div className="mt-10">
         <h2 className="text-white text-xl mb-4">Version Alternative :</h2>
         <My_PacMan />
+      </div>
+      <div className="border-4 border-white rounded-lg overflow-hidden">
+        <Pong />
       </div>
     </main>
   );
