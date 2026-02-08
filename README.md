@@ -3,11 +3,11 @@
 ## It's not a bug. It's a feature.
 
 - **Adam**: Pong
-- **Victor**: Pacman
 - **Flo**: Snake
+- **Noé**: Plateformer
 - **Tanys**: Quizz
-- **Noé**: ????
-- **Ewan**: ????
+- **Victor**: Pacman
+- **Ewan**: Init + Transi + Link between games + Victory screen + Easter Eggs
 
 ## Project Structure
 
