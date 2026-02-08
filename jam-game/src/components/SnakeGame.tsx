@@ -1,12 +1,15 @@
-'use client';
-
 import React, { useEffect, useRef, useState } from 'react';
 
 const CANVAS_WIDTH = 800;
 const CANVAS_HEIGHT = 600;
 const GRID_SIZE = 20;
 
-const SnakeGame = () => {
+interface SnakeGameProps {
+  onVictory: () => void;
+  onGameOver: () => void;
+}
+
+const SnakeGame: React.FC<SnakeGameProps> = ({ onVictory, onGameOver }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const [snake, setSnake] = useState([{ x: 10, y: 10 }]);
@@ -104,16 +107,19 @@ const SnakeGame = () => {
       if (newHead.x < 0 || newHead.x >= CANVAS_WIDTH / GRID_SIZE ||
         newHead.y < 0 || newHead.y >= CANVAS_HEIGHT / GRID_SIZE) {
         setIsGameOver(true);
+        onGameOver();
         return;
       }
 
       if (snake.some(segment => segment.x === newHead.x && segment.y === newHead.y)) {
         setIsGameOver(true);
+        onGameOver();
         return;
       }
 
       if (deadPixels.some(pixel => pixel.x === newHead.x && pixel.y === newHead.y)) {
         setIsGameOver(true);
+        onGameOver();
         return;
       }
 
@@ -122,7 +128,10 @@ const SnakeGame = () => {
       if (newHead.x === food.x && newHead.y === food.y) {
         setScore(s => {
           const newScore = s + 1;
-          if (newScore >= 10) setIsWon(true);
+          if (newScore >= 10) {
+            setIsWon(true);
+            onVictory();
+          }
           return newScore;
         });
         setFood({
@@ -171,7 +180,7 @@ const SnakeGame = () => {
 
     const gameLoop = setInterval(moveSnake, speed);
     return () => clearInterval(gameLoop);
-  }, [direction, food, isGameOver, speed, isLagging, isWon, snake, deadPixels]);
+  }, [direction, food, isGameOver, speed, isLagging, isWon, snake, deadPixels, onVictory, onGameOver]);
 
   useEffect(() => {
     const ctx = canvasRef.current?.getContext('2d');
@@ -230,12 +239,9 @@ const SnakeGame = () => {
       {isGameOver && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 text-white z-10">
           <h2 className="text-2xl font-bold text-red-500">GAME OVER</h2>
-          <button
-            onClick={() => window.location.reload()}
-            className="mt-4 px-4 py-2 bg-white text-black rounded hover:bg-zinc-200"
-          >
-            Restart
-          </button>
+          <div className="mt-4 text-center">
+            <p>Returning to start...</p>
+          </div>
         </div>
       )}
 
@@ -243,12 +249,9 @@ const SnakeGame = () => {
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-green-900/90 text-white z-10 border-4 border-green-500">
           <h2 className="text-4xl font-bold text-green-400 mb-4 animate-pulse">gg</h2>
           <div className="text-6xl mb-8">🍾</div>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-6 py-3 bg-green-500 text-black font-bold rounded hover:bg-green-400 transition-colors"
-          >
-            AGAIN
-          </button>
+          <div className="mt-4 text-center">
+            <p>Transferring to next level...</p>
+          </div>
         </div>
       )}
     </div>
