@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import { useState } from 'react';
 import GlitchOverlay from '@/components/GlitchOverlay';
 
+const Pong = dynamic(() => import('@/components/AdamGame'), { ssr: false });
 const SnakeGame = dynamic(() => import('@/components/SnakeGame'), { ssr: false });
 const PacMan = dynamic(() => import('@/components/PacMan'), { ssr: false });
 const NoeGame = dynamic(() => import('@/components/noe_game'), { ssr: false });
@@ -21,8 +22,8 @@ export default function Home() {
 
   const handleGlitchComplete = () => {
     setShowGlitch(false);
-    // gameIndex: 0=Snake, 1=PacMan, 2=Noe, 3=Quiz
-    setGameIndex((prev) => (prev + 1) % 4);
+    // gameIndex: 0=Pong, 1=Snake, 2=PacMan, 3=Noe, 4=Quiz
+    setGameIndex((prev) => (prev + 1) % 5);
     setResetKey(prev => prev + 1);
   };
 
@@ -39,20 +40,23 @@ export default function Home() {
     const commonProps = {
       onVictory: handleVictory,
       onGameOver: handleGameOver,
-      key: `game-${gameIndex}-${resetKey}`
     };
+
+    const key = `game-${gameIndex}-${resetKey}`;
 
     switch (gameIndex) {
       case 0:
-        return <div className="border-4 border-green-500 p-2 rounded-lg bg-black"><SnakeGame {...commonProps} /></div>;
+        return <div className="border-4 border-blue-500 p-2 rounded-lg bg-black"><Pong key={key} onVictory={handleGameOver} onGameOver={handleVictory} /></div>;
       case 1:
-        return <div className="border-4 border-yellow-500 p-2 rounded-lg bg-black"><PacMan {...commonProps} /></div>;
+        return <div className="border-4 border-green-500 p-2 rounded-lg bg-black"><SnakeGame key={key} {...commonProps} /></div>;
       case 2:
-        return <div className="border-4 border-red-500 p-2 rounded-lg bg-black"><NoeGame {...commonProps} /></div>;
+        return <div className="border-4 border-yellow-500 p-2 rounded-lg bg-black"><PacMan key={key} {...commonProps} /></div>;
       case 3:
-        return <div className="border-4 border-purple-500 p-2 rounded-lg bg-black"><Quiz {...commonProps} /></div>;
+        return <div className="border-4 border-red-500 p-2 rounded-lg bg-black"><NoeGame key={key} {...commonProps} /></div>;
+      case 4:
+        return <div className="border-4 border-purple-500 p-2 rounded-lg bg-black"><Quiz key={key} {...commonProps} /></div>;
       default:
-        return <SnakeGame {...commonProps} />;
+        return <Pong key={key} {...commonProps} />;
     }
   };
 
@@ -61,10 +65,11 @@ export default function Home() {
       <GlitchOverlay active={showGlitch} onComplete={handleGlitchComplete} />
 
       <h1 className="text-4xl font-bold mb-8 text-white z-10">
-        {gameIndex === 0 && "SNAKE PROTOCOL"}
-        {gameIndex === 1 && "PAC-SYSTEM"}
-        {gameIndex === 2 && "GLITCHED REALITY"}
-        {gameIndex === 3 && "FINAL TRUTH"}
+        {gameIndex === 0 && "INITIATION: PONG"}
+        {gameIndex === 1 && "SNAKE PROTOCOL"}
+        {gameIndex === 2 && "PAC-SYSTEM"}
+        {gameIndex === 3 && "GLITCHED REALITY"}
+        {gameIndex === 4 && "FINAL TRUTH"}
       </h1>
 
       <div className="flex flex-col gap-8 z-10 w-full max-w-[850px] items-center">
@@ -72,11 +77,8 @@ export default function Home() {
       </div>
 
       <div className="absolute bottom-4 left-4 text-gray-500 text-sm">
-        Level: {gameIndex + 1}/4
+        Level: {gameIndex + 1}/5
       </div>
-      <div className="border-4 border-white rounded-lg overflow-hidden">
-        <Pong />
-      </div>
-    </main>
+    </main >
   );
 }

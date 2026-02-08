@@ -9,8 +9,10 @@ const GlitchOverlay = ({ active, onComplete }: { active: boolean, onComplete?: (
             const timer = setTimeout(() => {
                 setVisible(false);
                 if (onComplete) onComplete();
-            }, 1000); // Glitch duratio
+            }, 1000); // Glitch duration
             return () => clearTimeout(timer);
+        } else {
+            setVisible(false);
         }
     }, [active, onComplete]);
 

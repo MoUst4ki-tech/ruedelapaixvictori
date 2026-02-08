@@ -128,7 +128,7 @@ const SnakeGame: React.FC<SnakeGameProps> = ({ onVictory, onGameOver }) => {
       if (newHead.x === food.x && newHead.y === food.y) {
         setScore(s => {
           const newScore = s + 1;
-          if (newScore >= 10) {
+          if (newScore >= 5) {
             setIsWon(true);
             onVictory();
           }
@@ -229,7 +229,7 @@ const SnakeGame: React.FC<SnakeGameProps> = ({ onVictory, onGameOver }) => {
       </div>
 
       <div className="absolute top-4 left-4 font-mono font-bold text-lg text-green-500 z-[60] pointer-events-none">
-        SCORE: {score}/10
+        SCORE: {score}/5
       </div>
 
       <div className="absolute bottom-2 w-full text-center font-mono text-sm text-white/50 z-[60] pointer-events-none">
