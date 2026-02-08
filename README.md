@@ -2,12 +2,12 @@
 
 ## It's not a bug. It's a feature.
 
-- **Adam**: Pong
-- **Flo**: Snake
-- **Noé**: Plateformer
-- **Tanys**: Quizz
-- **Victor**: Pacman
-- **Ewan**: Init + Transi + Link between games + Victory screen + Easter Eggs
+- **Adam**: Pong game component
+- **Flo**: Snake game component
+- **Noé**: Plateformer game component
+- **Tanys**: Quizz game component
+- **Victor**: Pacman game component
+- **Ewan**: Init, Glitch transition, Link between games, Victory screen, Easter Eggs
 
 ## Project Structure
 
