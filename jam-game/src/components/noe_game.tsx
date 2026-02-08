@@ -292,10 +292,9 @@ const MarioGame: React.FC = () => {
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', backgroundColor: '#333', padding: '20px', minHeight: '100vh' }}>
-            <h2 style={{ color: 'white', marginBottom: '10px' }}>Mario: The Glitch Loop</h2>
+            <h2 style={{ color: 'white', marginBottom: '10px' }}></h2>
             <div ref={gameContainer} style={{ border: '4px solid #555', borderRadius: '8px', overflow: 'hidden' }} />
             <p style={{ color: '#aaa', marginTop: '10px' }}>
-                Trouvez la faille avant que la boucle temporelle (15s) ne vous ramène au début.
             </p>
         </div>
     );
