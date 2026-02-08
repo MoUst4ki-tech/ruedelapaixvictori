@@ -233,7 +233,6 @@ const MarioGame: React.FC = () => {
                 }
             });
 
-        
             this.cameras.main.setBounds(0, 0, levelWidth, 600);
             this.cameras.main.startFollow(player, true, 0.1, 0.1);
 
