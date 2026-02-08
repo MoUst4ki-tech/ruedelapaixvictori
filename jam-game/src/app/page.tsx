@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic';
 
 const Game = dynamic(() => import('@/components/Game'), { ssr: false });
+const Pong = dynamic(() => import('@/components/AdamGame'), { ssr: false });
 
 export default function Home() {
   return (
@@ -10,6 +11,9 @@ export default function Home() {
       <h1 className="text-4xl font-bold mb-8 text-white">Next.js + Phaser Game</h1>
       <div className="border-4 border-white rounded-lg overflow-hidden">
         <Game />
+      </div>
+      <div className="border-4 border-white rounded-lg overflow-hidden">
+        <Pong />
       </div>
     </main>
   );
