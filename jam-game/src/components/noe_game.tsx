@@ -25,7 +25,13 @@ const MarioGame: React.FC = () => {
                 default: 'arcade',
                 arcade: {
                     gravity: { y: 1000, x: 0 }, 
-                    debug: false
+                    debug: false,
+                    checkCollision: { up: true, down: true, left: true, right: true }
+                }
+            },
+            input: {
+                keyboard: {
+                    capture: false
                 }
             },
             scene: {
@@ -128,6 +134,19 @@ const MarioGame: React.FC = () => {
             const bg = this.add.image(400, 300, 'background');
             bg.setScrollFactor(0);
 
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowLeft') cursors.left.isDown = true;
+                if (e.key === 'ArrowRight') cursors.right.isDown = true;
+                if (e.key === 'ArrowUp') cursors.up.isDown = true;
+                if (e.key === 'ArrowDown') cursors.down.isDown = true;
+            });
+        
+            window.addEventListener('keyup', (e) => {
+                if (e.key === 'ArrowLeft') cursors.left.isDown = false;
+                if (e.key === 'ArrowRight') cursors.right.isDown = false;
+                if (e.key === 'ArrowUp') cursors.up.isDown = false;
+                if (e.key === 'ArrowDown') cursors.down.isDown = false;
+            });
             // 2. Création des Plateformes
             platforms = this.physics.add.staticGroup();
             const ground = this.add.tileSprite(levelWidth / 2, 584, levelWidth, 100, 'ground');

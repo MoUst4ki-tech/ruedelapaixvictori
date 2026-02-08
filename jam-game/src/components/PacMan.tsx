@@ -47,7 +47,6 @@
 
         useEffect(() => {
             if (typeof window !== 'undefined' && gameContainer.current && !gameRef.current) {
-                // Configuration Phaser
                 const config: Phaser.Types.Core.GameConfig = {
                     type: Phaser.AUTO,
                     width: 760,
@@ -55,7 +54,12 @@
                     parent: gameContainer.current,
                     physics: {
                         default: 'arcade',
-                        arcade: { gravity: { x: 0, y: 0 } }
+                        arcade: { gravity: { x: 0, y: 0 }, checkCollision: { up: true, down: true, left: true, right: true } }
+                    },
+                    input: {
+                        keyboard: {
+                            capture: false
+                        }
                     },
                     scene: {
                         preload: preload,
@@ -68,7 +72,6 @@
             }
 
             return () => {
-                // Nettoyage impératif
                 if (gameRef.current) {
                     gameRef.current.destroy(true);
                     gameRef.current = null;
@@ -76,7 +79,6 @@
             };
         }, []);
 
-        // --- Fonctions Phaser ---
         let player: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
         let walls: Phaser.Physics.Arcade.StaticGroup;
         let points: Phaser.Physics.Arcade.StaticGroup;
@@ -89,15 +91,12 @@
         let wall_coins: integer;
 
         function preload(this: Phaser.Scene) {
-            // On crée des textures simples dynamiquement pour éviter de chercher des fichiers images
             const graphics = this.make.graphics({ x: 0, y: 0, add: false });
 
-            // Mur (Carré bleu)
             graphics.fillStyle(0x0000ff, 1);
             graphics.fillRect(0, 0, TILE_SIZE, TILE_SIZE);
             graphics.generateTexture('wall', TILE_SIZE, TILE_SIZE);
 
-            // Pacman (Cercle jaune)
             graphics.clear();
             graphics.fillStyle(0xffff00, 1);
             graphics.fillCircle(TILE_SIZE / 2, TILE_SIZE / 2, TILE_SIZE / 3);
@@ -113,7 +112,6 @@
             graphics.fillCircle(TILE_SIZE / 2, TILE_SIZE / 2, TILE_SIZE / 4);
             graphics.generateTexture('spe_point', TILE_SIZE, TILE_SIZE);
 
-            // Fantom
             graphics.clear();
             graphics.fillStyle(0xFF00FF, 1);
             graphics.fillCircle(TILE_SIZE / 2, TILE_SIZE / 2, TILE_SIZE / 3);
@@ -121,7 +119,6 @@
         }
 
         const changeDirection = (ennemi: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody, speed: number) => {
-            // On définit les 4 directions cardinales fixes
             const directions = [
                 { x: speed, y: 0 },
                 { x: -speed, y: 0 },
@@ -133,10 +130,8 @@
                 { x: -speed, y: speed }
             ];
         
-            // On en choisit une au hasard
             const choice = directions[Math.floor(Math.random() * directions.length)];
 
-            // On l'applique proprement
             ennemi.setVelocity(choice.x, choice.y);
         };
 
@@ -147,16 +142,28 @@
             coins = 0;
             wall_coins = 0;
 
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowLeft') cursors.left.isDown = true;
+                if (e.key === 'ArrowRight') cursors.right.isDown = true;
+                if (e.key === 'ArrowUp') cursors.up.isDown = true;
+                if (e.key === 'ArrowDown') cursors.down.isDown = true;
+            });
+        
+            window.addEventListener('keyup', (e) => {
+                if (e.key === 'ArrowLeft') cursors.left.isDown = false;
+                if (e.key === 'ArrowRight') cursors.right.isDown = false;
+                if (e.key === 'ArrowUp') cursors.up.isDown = false;
+                if (e.key === 'ArrowDown') cursors.down.isDown = false;
+            });
             let winText = this.add.text(380, 380, 'C\'est ok', { 
                 fontSize: '64px', 
                 color: '#ffff00',
                 backgroundColor: '#000000',
                 padding: { x: 20, y: 10 }
             });
-            winText.setOrigin(0.5); // Centre le texte sur son point d'ancrage
-            winText.setVisible(false); // Cache le texte au début
+            winText.setOrigin(0.5);
+            winText.setVisible(false);
             winText.setDepth(100);
-            // Génération du labyrinthe selon la matrice
             MAP.forEach((row, y) => {
                 row.forEach((tile, x) => {
                     if (tile === 1) {
@@ -171,11 +178,9 @@
                 });
             });
 
-            // Création du joueur
             player = this.physics.add.sprite(60, 60, 'pacman');
             ennemis = this.physics.add.group();
 
-            // On définit quelques positions de départ (x, y)
             const spawnPoints = [
                 { x: 380, y: 380 },
                 { x: 380, y: 300 },
@@ -186,7 +191,7 @@
                 const e = ennemis.create(pos.x, pos.y, 'fantom');
                 e.setBodySize(30, 30);
                 e.setOffset(5, 5);
-                e.setCollideWorldBounds(true); // Pour ne pas sortir de l'écran
+                e.setCollideWorldBounds(true);
                 e.visible = false;
             });
 
@@ -198,10 +203,8 @@
 
             this.physics.add.overlap(player, ennemis, (playerRef, ennemiTouché: any) => {
                 if (isSuperMode) {
-                    // Le fantôme est mangé ! On le désactive ou on le renvoie au centre
                     ennemiTouché.disableBody(true, true); 
 
-                    // Optionnel : Le faire réapparaître après 5 secondes
                     this.time.delayedCall(5000, () => {
                         ennemiTouché.enableBody(true, 380, 380, true, true);
                         ennemiTouché.setVelocityX(-speed);
@@ -211,29 +214,24 @@
                         }
                     });
                 } else {
-                    // Mort du joueur
                     this.scene.restart();
                 }
             }, undefined, this);
             this.physics.add.collider(player, walls, (playerRef, wallRef: any) => {
                 if (isEnding) {
-                    // Si c'est la fin, on désactive le mur touché au lieu de rebondir
                     wallRef.disableBody(true, true);
                     isSuperMode = true;
                     wall_coins++;
                     ennemis.getChildren().forEach((e: any) => {
                         e.visible = true;
-                        e.setTint(0x0000ff); // Bleu
+                        e.setTint(0x0000ff);
                     });
                     if (wall_coins === total_coins) {
                         winText.setVisible(true);
                     }
-                    // On peut même ajouter un petit boost de vitesse ou de score ici !
-                }
-                // Si isEnding est false, le comportement par défaut (blocage) s'applique
+                } // <-- Le $ a été supprimé ici
             }, undefined, this);
             this.physics.add.overlap(player, points, (playerRef, pointTouché) => {
-                // @ts-ignore (Si pointTouché n'est pas reconnu comme ayant disableBody)
                 pointTouché.disableBody(true, true);
                 coins++;
 
@@ -244,35 +242,26 @@
                 }
             }, undefined, this);
             this.physics.add.overlap(player, spe_points, (playerRef, pointTouché) => {
-                // @ts-ignore
                 pointTouché.disableBody(true, true);
                         
                 isSuperMode = true;
                         
-                // Rendre tous les fantômes visibles et bleus (pour montrer qu'ils ont peur)
                 ennemis.getChildren().forEach((e: any) => {
                     e.visible = true;
-                    e.setTint(0x0000ff); // Bleu
+                    e.setTint(0x0000ff);
                 });
-            
-                // Au bout d'une seconde, on pourrait cacher à nouveau ? 
-                // Mais si tu veux les tuer pendant 10s, mieux vaut les laisser visibles !
-                
-                // Timer de 10 secondes pour arrêter le mode Super
                 this.time.delayedCall(10000, () => {
                     isSuperMode = false;
                     ennemis.getChildren().forEach((e: any) => {
-                        e.visible = false; // Ils redeviennent invisibles
-                        e.clearTint();     // Ils reprennent leur couleur
+                        e.visible = false;
+                        e.clearTint();
                     });
                 });
             }, undefined, this);
             this.time.addEvent({
             delay: 1000,
             callback: () => {
-                // On récupère tous les fantômes et on change la direction de chacun
                 ennemis.getChildren().forEach((enfant) => {
-                    // enfant est ici un sprite individuel
                     changeDirection(enfant, speed); 
                 });
             },

@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic';
 
 const Game = dynamic(() => import('@/components/Game'), { ssr: false });
+const Quiz = dynamic(() => import('@/components/quiz'), { ssr: false });
 const Pong = dynamic(() => import('@/components/AdamGame'), { ssr: false });
 const My_PacMan = dynamic(() => import('@/components/PacMan'), { ssr: false });
 const NoeGame = dynamic(() => import('@/components/noe_game'), { ssr: false });
@@ -46,7 +47,7 @@ export default function Home() {
       <div className="flex flex-col items-center gap-4 opacity-40">
         <h2 className="text-xl font-semibold">Base Engine</h2>
         <div className="border-2 border-zinc-700 rounded-lg overflow-hidden">
-          <Game />
+          <Quiz />
         </div>
       </div>
 
