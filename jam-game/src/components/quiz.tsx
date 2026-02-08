@@ -3,7 +3,12 @@
 import { useEffect, useRef } from 'react';
 import * as Phaser from 'phaser';
 
-const Quizz = () => {
+interface QuizProps {
+    onVictory: () => void;
+    onGameOver: () => void;
+}
+
+const Quizz: React.FC<QuizProps> = ({ onVictory, onGameOver }) => {
     const gameContainer = useRef<HTMLDivElement>(null);
     const gameRef = useRef<Phaser.Game | null>(null);
 
@@ -61,7 +66,7 @@ const Quizz = () => {
                 gameRef.current = null;
             }
         };
-    }, []);
+    }, [onVictory, onGameOver]);
 
     function preload(this: Phaser.Scene) {
         this.load.image("gamberge", "/quizz/bro_thinks_he_is_the_thinker.png");
@@ -79,7 +84,7 @@ const Quizz = () => {
         logo.setScale(0.5)
 
         buttonGroup = this.add.group();
-        
+
         textTitre = this.add.text(250, 100, "", {
             fontSize: "40px",
             align: "center",
@@ -113,32 +118,32 @@ const Quizz = () => {
                 fixedWidth: 200,
                 align: 'center'
             })
-            .setOrigin(0.5)
-            .setInteractive({ useHandCursor: true });
+                .setOrigin(0.5)
+                .setInteractive({ useHandCursor: true });
 
             buttonGroup.add(button);
 
             button.on('pointerdown', () => {
                 if (index_question == 2) {
-                        if (click_count < 5) {
-                            logo.destroy();
-                            logo = scene.add.image(650, 70, "content");
-                            logo.setScale(0.5)
-                            
-                            button.setStyle({ backgroundColor: '#27ae60', color: '#fff' });
-                            click_count++
-                        } else if (click_count < 7) {
-                            button.setStyle({ backgroundColor: '#27ae60', color: '#fff' });
-                            scene.time.delayedCall(1500, () => {
+                    if (click_count < 5) {
+                        logo.destroy();
+                        logo = scene.add.image(650, 70, "content");
+                        logo.setScale(0.5)
+
+                        button.setStyle({ backgroundColor: '#27ae60', color: '#fff' });
+                        click_count++
+                    } else if (click_count < 7) {
+                        button.setStyle({ backgroundColor: '#27ae60', color: '#fff' });
+                        scene.time.delayedCall(1500, () => {
                             pass_question(scene, 0);
-                            });
-                        }
+                        });
                     }
+                }
                 if (text === questions.valide) {
                     if (index_question == 1) {
                         textTitre.setText("Sûr?")
                         click_count++;
-                        if (click_count < 5){
+                        if (click_count < 5) {
                             const newx = Phaser.Math.Between(0, 800);
                             const newy = Phaser.Math.Between(0, 600);
 
@@ -156,42 +161,47 @@ const Quizz = () => {
                             click_count = 0;
                             button.setStyle({ backgroundColor: '#27ae60', color: '#fff' });
                             scene.time.delayedCall(1500, () => {
-                            pass_question(scene, 0);
-                            });
-                        }           
-                    } else {
-                            logo.destroy();
-                            logo = scene.add.image(650, 70, "content");
-                            logo.setScale(0.5)
-
-                            button.setStyle({ backgroundColor: '#27ae60', color: '#fff' });
-                            scene.time.delayedCall(1500, () => {
-                            pass_question(scene, 0);
+                                pass_question(scene, 0);
                             });
                         }
-                } else  if (index_question != 2) {
+                    } else {
+                        logo.destroy();
+                        logo = scene.add.image(650, 70, "content");
+                        logo.setScale(0.5)
+
+                        button.setStyle({ backgroundColor: '#27ae60', color: '#fff' });
+                        scene.time.delayedCall(1500, () => {
+                            pass_question(scene, 0);
+                        });
+                    }
+                } else if (index_question != 2) {
                     vie.x += 100;
                     logo.destroy();
                     logo = scene.add.image(650, 70, "colere");
                     logo.setScale(0.5)
                     button.setStyle({ backgroundColor: '#c0392b', color: '#fff' });
                     scene.time.delayedCall(1500, () => {
-                    pass_question(scene, 1);
+                        pass_question(scene, 1);
                     });
                 }
             });
         });
     }
 
-    function pass_question(scene: Phaser.Scene, value) {
+    function pass_question(scene: Phaser.Scene, value: number) {
         logo.destroy();
         logo = scene.add.image(650, 75, "gamberge");
         logo.setScale(0.5)
         click_count = 0;
-        if (value == 1)
-            index_question = 0;
-        else 
+        if (value == 1) {
+            // GAME OVER ON WRONG ANSWER
+            // index_question = 0; // Old behavior
+            onGameOver();
+            return;
+        } else {
             index_question++;
+        }
+
         if (index_question < Questions.length) {
             generate_question_call(scene);
         } else {
@@ -201,10 +211,15 @@ const Quizz = () => {
             textTitre.setPosition(400, 300);
             textTitre.setText("Bravo ! Quiz terminé.");
             buttonGroup.clear(true, true);
+
+            // VICTORY
+            scene.time.delayedCall(2000, () => {
+                onVictory();
+            });
         }
     }
 
-    function update(this: Phaser.Scene) {}
+    function update(this: Phaser.Scene) { }
 
     return <div ref={gameContainer} style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }} />;
 };

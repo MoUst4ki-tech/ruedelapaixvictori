@@ -1,7 +1,12 @@
 import React, { useEffect, useRef } from 'react';
 import Phaser from 'phaser';
 
-const MarioGame: React.FC = () => {
+interface MarioGameProps {
+    onVictory: () => void;
+    onGameOver: () => void;
+}
+
+const MarioGame: React.FC<MarioGameProps> = ({ onVictory, onGameOver }) => {
     const gameContainer = useRef<HTMLDivElement>(null);
     const gameInstance = useRef<Phaser.Game | null>(null);
 
@@ -11,7 +16,7 @@ const MarioGame: React.FC = () => {
         let player: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
         let platforms: Phaser.Physics.Arcade.StaticGroup;
         let cursors: Phaser.Types.Input.Keyboard.CursorKeys;
-        
+
         // Variables pour le Glitch
         let wallcount = 0;
         const wallaie = 100; // Seuil réduit pour faciliter le test
@@ -24,14 +29,14 @@ const MarioGame: React.FC = () => {
             physics: {
                 default: 'arcade',
                 arcade: {
-                    gravity: { y: 1000, x: 0 }, 
+                    gravity: { y: 1000, x: 0 },
                     debug: false,
                     checkCollision: { up: true, down: true, left: true, right: true }
                 }
             },
             input: {
                 keyboard: {
-                    capture: false
+                    capture: []
                 }
             },
             scene: {
@@ -54,7 +59,7 @@ const MarioGame: React.FC = () => {
         // --- FONCTION DE FIN SECRÈTE ---
         function triggerSecretEnd(scene: Phaser.Scene) {
             scene.physics.pause();
-            
+
             // On utilise les dimensions de la caméra, pas du monde
             const screenCenterX = scene.cameras.main.width / 2;
             const screenCenterY = scene.cameras.main.height / 2;
@@ -89,7 +94,7 @@ const MarioGame: React.FC = () => {
 
             scene.time.delayedCall(5000, () => {
                 consoleText.destroy();
-                
+
                 // Fond noir qui couvre tout l'écran
                 const blackBg = scene.add.rectangle(screenCenterX, screenCenterY, 800, 600, 0x000000)
                     .setScrollFactor(0)
@@ -117,7 +122,10 @@ const MarioGame: React.FC = () => {
                             targets: [finalTitle, finalSub],
                             alpha: 1,
                             duration: 3000,
-                            ease: 'Power2'
+                            ease: 'Power2',
+                            onComplete: () => {
+                                onVictory();
+                            }
                         });
                     }
                 });
@@ -126,11 +134,12 @@ const MarioGame: React.FC = () => {
 
         function create(this: Phaser.Scene) {
             // 1. Configuration du Monde
-            const chunkWidth = 800; 
-            const totalChunks = 10; 
+            const chunkWidth = 800;
+            const totalChunks = 10;
             const levelWidth = chunkWidth * totalChunks;
             this.physics.world.setBounds(0, 0, levelWidth, 600);
 
+            const graphics = this.make.graphics({ x: 0, y: 0 });
             const bg = this.add.image(400, 300, 'background');
             bg.setScrollFactor(0);
 
@@ -140,7 +149,7 @@ const MarioGame: React.FC = () => {
                 if (e.key === 'ArrowUp') cursors.up.isDown = true;
                 if (e.key === 'ArrowDown') cursors.down.isDown = true;
             });
-        
+
             window.addEventListener('keyup', (e) => {
                 if (e.key === 'ArrowLeft') cursors.left.isDown = false;
                 if (e.key === 'ArrowRight') cursors.right.isDown = false;
@@ -181,7 +190,7 @@ const MarioGame: React.FC = () => {
 
             createAnimFromTexture(this, 'left', 'player-left', 10);
             createAnimFromTexture(this, 'right', 'player-right', 10);
-            
+
             if (this.textures.exists('player-right')) {
                 const names = this.textures.get('player-right').getFrameNames();
                 if (names && names.length > 0) {
@@ -191,8 +200,8 @@ const MarioGame: React.FC = () => {
 
             // 4. CRÉATION DU JOUEUR (Important : Avant le timer !)
             player = this.physics.add.sprite(100, 450, 'player-right') as Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
-            player.setScale(0.15); 
-            player.refreshBody(); 
+            player.setScale(0.15);
+            player.refreshBody();
             player.setBounce(0.1);
             player.setCollideWorldBounds(true);
 
@@ -203,7 +212,7 @@ const MarioGame: React.FC = () => {
             // On attend la première touche appuyée pour lancer le chrono
             this.input.keyboard?.once('keydown', () => {
                 console.log("Timer activé : 15 secondes avant reset.");
-                
+
                 // Petit texte pour prévenir le joueur
                 const timerText = this.add.text(10, 10, 'TIME LOOP ACTIVE: 15s', { color: 'red', fontSize: '20px' }).setScrollFactor(0);
 
@@ -211,11 +220,11 @@ const MarioGame: React.FC = () => {
                     // RESET DU JOUEUR
                     player.setPosition(spawnX, spawnY);
                     player.setVelocity(0, 0);
-                    
+
                     // Feedback visuel (Flash rouge)
                     this.cameras.main.flash(500, 255, 0, 0);
                     timerText.setText("LOOP RESET");
-                    
+
                     // Optionnel : Relancer le timer pour une boucle infinie
                     // (Ici ça ne le fait qu'une fois, il faudrait mettre ça dans une fonction récursive pour l'infini)
                 });
@@ -225,14 +234,14 @@ const MarioGame: React.FC = () => {
             this.physics.add.collider(player, platforms, (obj1, obj2) => {
                 const p = obj1 as Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
                 const platform = obj2 as Phaser.GameObjects.TileSprite;
-                
+
                 // On cible uniquement la petite plateforme de 50px de large
-                const isPlatform4 = platform.width === 50; 
+                const isPlatform4 = platform.width === 50;
 
                 // Le glitch s'active si on pousse à GAUCHE contre le mur (flanc droit de la plateforme)
                 if (isPlatform4 && cursors.left.isDown && p.body.blocked.left) {
                     wallcount++;
-                    
+
                     // Effet visuel
                     if (wallcount % 5 === 0) p.setTint(0xff0000); // Rouge
                     else p.clearTint(); // Normal
@@ -263,14 +272,14 @@ const MarioGame: React.FC = () => {
 
             if (cursors.left.isDown) {
                 player.setVelocityX(-260);
-                player.setTexture('player-left'); 
+                player.setTexture('player-left');
                 player.anims.play('left', true);
-            } 
+            }
             else if (cursors.right.isDown) {
                 player.setVelocityX(260);
                 player.setTexture('player-right');
                 player.anims.play('right', true);
-            } 
+            }
             else {
                 player.setVelocityX(0);
                 player.setTexture('player-right');
@@ -288,10 +297,10 @@ const MarioGame: React.FC = () => {
                 gameInstance.current = null;
             }
         };
-    }, []);
+    }, [onVictory, onGameOver]);
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', backgroundColor: '#333', padding: '20px', minHeight: '100vh' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', backgroundColor: '#333', padding: '10px' }}>
             <h2 style={{ color: 'white', marginBottom: '10px' }}></h2>
             <div ref={gameContainer} style={{ border: '4px solid #555', borderRadius: '8px', overflow: 'hidden' }} />
             <p style={{ color: '#aaa', marginTop: '10px' }}>

@@ -1,184 +1,182 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
+import * as Phaser from 'phaser';
 
-const Pong = () => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [score, setScore] = useState({ p1: 0, p2: 0 });
-  const [gameOver, setGameOver] = useState<string | null>(null);
-    const gameOverRef = useRef<string | null>(null);
-  const gameState = useRef({
-    ball: { x: 300, y: 200, dx: 4, dy: 4, radius: 8 },
-    p1: { y: 150, height: 80, width: 10 },
-    p2: { y: 150, height: 80, width: 10 },
-    keys: {} as Record<string, boolean>
-  });
+interface PongProps {
+  onVictory: () => void;
+  onGameOver: () => void;
+}
 
-  const resetBall = (ball: any, direction: number) => {
-  ball.x = 300;
-  ball.y = 200;
-  ball.dx = 4 * direction;
-  ball.dy = (Math.random() - 0.5) * 6;
-    };
-  const triggerGameOver = (message: string) => {
-  setGameOver(message);
-  gameOverRef.current = message;
-};
+const Pong: React.FC<PongProps> = ({ onVictory, onGameOver }) => {
+  const gameContainer = useRef<HTMLDivElement>(null);
+  const gameRef = useRef<Phaser.Game | null>(null);
+
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    let animationId: number;
-
-    const handleKeyDown = (e: KeyboardEvent) => (gameState.current.keys[e.code] = true);
-    const handleKeyUp = (e: KeyboardEvent) => (gameState.current.keys[e.code] = false);
-    
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
-
-const loop = () => {
-  const { ball, p1, p2, keys } = gameState.current;
-
-  if (gameOverRef.current) return;
-  if (keys['ArrowUp'] && p1.y > 0) p1.y -= 5;
-  if (keys['ArrowDown'] && p1.y < canvas.height - p1.height) p1.y += 5;
-
-  if (ball.y > p2.y + p2.height / 2) p2.y += 3.5;
-  else p2.y -= 3.5;
-
-  const paddleCenter = p1.y + p1.height / 2;
-  const distY = paddleCenter - ball.y;
-  const attractionForce = 0.02; 
-  if (ball.dx < 0) {
-      ball.dy += distY * attractionForce;
-  }
-  const maxSpeedY = 7;
-  if (Math.abs(ball.dy) > maxSpeedY) {
-      ball.dy = maxSpeedY * (ball.dy > 0 ? 1 : -1);
-  }
-
-  ball.x += ball.dx;
-  ball.y += ball.dy;
-
-  if (ball.y <= 0 || ball.y >= canvas.height) {
-      ball.dy *= -1;
-  }
-
-if (ball.x <= 15) { 
-    const isTouchingPaddle = ball.y > p1.y && ball.y < p1.y + p1.height;
-
-    if (isTouchingPaddle) {
-      setScore(s => {
-        const newScore = { ...s, p2: s.p2 + 1 };
-        if (newScore.p2 >= 3) triggerGameOver('PERDU...');
-        return newScore;
-      });
-      resetBall(ball, 1); 
-    } else {
-      ball.dx *= -1.05;
-      ball.x = 16; 
-    }
-  }
-
-  if (ball.x >= canvas.width - 15) {
-    const isTouchingIA = ball.y > p2.y && ball.y < p2.y + p2.height;
-    if (isTouchingIA) {
-      ball.dx *= -1.05;
-      ball.x = canvas.width - 16;
-    } else {
-        setScore(s => {
-            const newScore = { ...s, p1: s.p1 + 1 };
-            if (newScore.p1 >= 7) triggerGameOver('GAGNÉ !'); 
-            return newScore;
-        });
-        resetBall(ball, -1);
+    if (typeof window !== 'undefined' && gameContainer.current && !gameRef.current) {
+      const config: Phaser.Types.Core.GameConfig = {
+        type: Phaser.AUTO,
+        width: 800,
+        height: 600,
+        parent: gameContainer.current,
+        physics: {
+          default: 'arcade',
+          arcade: {
+            debug: false
+          }
+        },
+        scene: {
+          preload: preload,
+          create: create,
+          update: update
         }
+      };
+
+      gameRef.current = new Phaser.Game(config);
     }
-
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.strokeStyle = '#444';
-  ctx.lineWidth = 5;
-  ctx.strokeRect(0, 0, 1, canvas.height);
-  ctx.fillStyle = '#ff4444'; 
-  ctx.fillRect(5, p1.y, p1.width, p1.height);
-  ctx.fillStyle = 'white';
-  ctx.fillRect(canvas.width - 15, p2.y, p2.width, p2.height);
-  ctx.beginPath();
-  ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
-  ctx.fill();
-
-  animationId = requestAnimationFrame(loop);
-};
-
-    loop();
 
     return () => {
-      cancelAnimationFrame(animationId);
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
+      if (gameRef.current) {
+        gameRef.current.destroy(true);
+        gameRef.current = null;
+      }
     };
-  }, [gameOver]);
+  }, [onVictory, onGameOver]);
+
+  let player: Phaser.Physics.Arcade.Sprite;
+  let pc: Phaser.Physics.Arcade.Sprite;
+  let ball: Phaser.Physics.Arcade.Sprite;
+  let cursors: Phaser.Types.Input.Keyboard.CursorKeys;
+
+  let scorePlayer = 0;
+  let scorePc = 0;
+  let scoreTextPlayer: Phaser.GameObjects.Text;
+  let scoreTextPc: Phaser.GameObjects.Text;
+  let infoText: Phaser.GameObjects.Text;
+
+  function preload(this: Phaser.Scene) {
+    const graphics = this.make.graphics({ x: 0, y: 0 });
+
+    graphics.clear();
+    graphics.fillStyle(0x0000ff, 1);
+    graphics.fillRect(0, 0, 20, 100);
+    graphics.generateTexture('playerTx', 20, 100);
+
+    graphics.clear();
+    graphics.fillStyle(0xff0000, 1);
+    graphics.fillRect(0, 0, 20, 100);
+    graphics.generateTexture('pcTx', 20, 100);
+
+    graphics.clear();
+    graphics.fillStyle(0xffffff, 1);
+    graphics.fillCircle(10, 10, 10);
+    graphics.generateTexture('ballTx', 20, 20);
+  }
+
+  function create(this: Phaser.Scene) {
+    this.add.rectangle(400, 300, 800, 600, 0x000000);
+
+    if (this.input.keyboard) {
+      cursors = this.input.keyboard.createCursorKeys();
+    }
+
+    player = this.physics.add.sprite(30, 300, 'playerTx');
+    player.setCollideWorldBounds(true);
+    player.setImmovable(true);
+
+    pc = this.physics.add.sprite(770, 300, 'pcTx');
+    pc.setCollideWorldBounds(true);
+    pc.setImmovable(true);
+
+    ball = this.physics.add.sprite(400, 300, 'ballTx');
+    ball.setCollideWorldBounds(false);
+    ball.setBounce(1);
+
+    resetBall(this);
+
+    this.physics.add.collider(ball, player, hitPlayer, undefined, this);
+    this.physics.add.collider(ball, pc, hitPc, undefined, this);
+
+    scoreTextPlayer = this.add.text(16, 16, 'Player: 0', { fontSize: '32px', color: '#00F' });
+    scoreTextPc = this.add.text(550, 16, 'CPU: 0', { fontSize: '32px', color: '#F00' });
+
+    infoText = this.add.text(400, 560, 'Lose to Win (First to 5)', { fontSize: '16px', color: '#fff' }).setOrigin(0.5);
+  }
+
+  function update(this: Phaser.Scene) {
+    if (!player?.body || !pc?.body || !ball?.body || !cursors) {
+      return;
+    }
+
+    if (cursors.up.isDown) {
+      player.setVelocityY(-350);
+    } else if (cursors.down.isDown) {
+      player.setVelocityY(350);
+    } else {
+      player.setVelocityY(0);
+    }
+
+    if (ball.y < pc.y - 15) {
+      pc.setVelocityY(-280);
+    } else if (ball.y > pc.y + 15) {
+      pc.setVelocityY(280);
+    } else {
+      pc.setVelocityY(0);
+    }
+
+    if (ball.y < 10) {
+      ball.setVelocityY(Math.abs(ball.body.velocity.y));
+    }
+    if (ball.y > 590) {
+      ball.setVelocityY(-Math.abs(ball.body.velocity.y));
+    }
+
+    if (ball.x > 850) {
+      scorePlayer += 1;
+      scoreTextPlayer.setText('Player: ' + scorePlayer);
+      if (scorePlayer >= 5) {
+        infoText.setText('VICTORY! (Glitch: Reset)');
+        this.physics.pause();
+        setTimeout(() => onVictory(), 1000);
+      } else {
+        resetBall(this);
+      }
+    }
+
+    if (ball.x < -50) {
+      scorePc += 1;
+      scoreTextPc.setText('CPU: ' + scorePc);
+      if (scorePc >= 5) {
+        infoText.setText('DEFEAT... (Glitch: Success)');
+        this.physics.pause();
+        setTimeout(() => onGameOver(), 1000);
+      } else {
+        resetBall(this);
+      }
+    }
+  }
+
+  function hitPlayer(b: any, p: any) {
+    const currentVel = b.body.velocity.x;
+    let newVel = Math.abs(currentVel) + 50;
+    if (newVel > 900) newVel = 900;
+    b.setVelocityX(newVel);
+  }
+
+  function hitPc(b: any, p: any) {
+    const currentVel = b.body.velocity.x;
+    let newVel = Math.abs(currentVel) + 50;
+    if (newVel > 900) newVel = 900;
+    b.setVelocityX(-newVel);
+  }
+
+  function resetBall(scene: Phaser.Scene) {
+    ball.setPosition(400, 300);
+    const dirX = Math.random() > 0.5 ? 1 : -1;
+    const dirY = Math.random() > 0.5 ? 1 : -1;
+    ball.setVelocity(300 * dirX, 300 * dirY);
+  }
 
   return (
-    <div style={{ color: 'white', textAlign: 'center', fontFamily: 'sans-serif', marginTop: '50px' }}>
-      <h1 style={{ fontSize: '3rem', marginBottom: '10px' }}>{score.p1} - {score.p2}</h1>
-      
-      <div style={{ position: 'relative', display: 'inline-block' }}>
-        <canvas 
-          ref={canvasRef} 
-          width="600" 
-          height="400" 
-          style={{ 
-            background: 'black', 
-            border: '4px solid #444',
-            boxShadow: '0 0 20px rgba(255, 255, 255, 0.1)' 
-          }} 
-        />
-        
-        {gameOver && (
-          <div style={{
-            position: 'absolute',
-            top: '0',
-            left: '0',
-            width: '600px',
-            height: '400px',
-            backgroundColor: 'rgba(0, 0, 0, 0.85)',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderRadius: '4px'
-          }}>
-            <h2 style={{ 
-              fontSize: '50px', 
-              margin: '0 0 20px 0',
-              color: gameOver === 'GAGNÉ !' ? '#44ff44' : '#ff4444',
-              textShadow: '0 0 10px rgba(255,255,255,0.2)'
-            }}>
-              {gameOver}
-            </h2>
-            <button 
-              onClick={() => window.location.reload()} 
-              style={{ 
-                padding: '12px 25px', 
-                cursor: 'pointer', 
-                fontSize: '18px',
-                backgroundColor: 'white',
-                border: 'none',
-                borderRadius: '5px',
-                fontWeight: 'bold',
-                transition: 'transform 0.2s'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
-              onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-            >
-              REJOUER
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
+    <div ref={gameContainer} className="flex justify-center mt-4" />
   );
 };
 
