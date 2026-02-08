@@ -74,6 +74,9 @@ export default function Home() {
       <div className="absolute bottom-4 left-4 text-gray-500 text-sm">
         Level: {gameIndex + 1}/4
       </div>
+      <div className="border-4 border-white rounded-lg overflow-hidden">
+        <Pong />
+      </div>
     </main>
   );
 }
