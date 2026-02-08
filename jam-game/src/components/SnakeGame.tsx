@@ -171,6 +171,7 @@ const SnakeGame: React.FC<SnakeGameProps> = ({ onVictory, onGameOver }) => {
             obsX += i;
           }
 
+          if (obsX === food.x && obsY === food.y) continue;
           newObstacles.push({ x: obsX, y: obsY, id: timestamp + i, type: 'wall' });
         }
 

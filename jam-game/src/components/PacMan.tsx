@@ -60,6 +60,7 @@ const My_PacMan: React.FC<PacManProps> = ({ onVictory, onGameOver }) => {
             let isSuperMode = false;
             let isEnding = false;
             let wall_coins = 0;
+            let currentPowerTimer: Phaser.Time.TimerEvent | null = null;
 
             const preload = function (this: Phaser.Scene) {
                 // On crée des textures simples dynamiquement pour éviter de chercher des fichiers images
@@ -178,6 +179,7 @@ const My_PacMan: React.FC<PacManProps> = ({ onVictory, onGameOver }) => {
                 this.physics.add.collider(ennemis, walls);
 
                 this.physics.add.overlap(player, ennemis, (playerRef, ennemiTouché: any) => {
+                    if (isEnding) return;
                     if (isSuperMode) {
                         ennemiTouché.disableBody(true, true);
                         this.time.delayedCall(5000, () => {
@@ -199,7 +201,78 @@ const My_PacMan: React.FC<PacManProps> = ({ onVictory, onGameOver }) => {
                     if (coins === total_points) {
                         isSuperMode = true;
                         isEnding = true
+
+                        ennemis.clear(true, true);
+
                         this.physics.world.removeCollider(wallCollider);
+                        this.physics.add.overlap(player, walls, (playerRef, wallRef: any) => {
+                            wallRef.disableBody(true, true);
+                            wall_coins++;
+                            const particles = this.add.particles(wallRef.x, wallRef.y, 'wall', {
+                                speed: 100,
+                                scale: { start: 0.5, end: 0 },
+                                lifespan: 300,
+                                blendMode: 'ADD'
+                            });
+                            this.time.delayedCall(300, () => particles.destroy());
+
+                            if (wall_coins === total_coins) {
+                                this.physics.pause();
+                                winText.setVisible(true);
+                                winText.setText("REALITY CONSUMED");
+                                winText.setFontSize(48);
+                                winText.setTint(0xff0000);
+
+                                this.tweens.add({
+                                    targets: winText,
+                                    scale: 1.5,
+                                    duration: 1000,
+                                    yoyo: true,
+                                    repeat: -1
+                                });
+
+                                const particles = this.add.particles(400, 300, 'wall', {
+                                    speed: { min: -200, max: 200 },
+                                    angle: { min: 0, max: 360 },
+                                    scale: { start: 1, end: 0 },
+                                    lifespan: 2000,
+                                    quantity: 50,
+                                    blendMode: 'ADD'
+                                });
+
+                                this.time.delayedCall(2000, () => {
+                                    this.cameras.main.shake(500, 0.05);
+                                    this.cameras.main.flash(500, 255, 0, 0);
+
+                                    const glitchRects: Phaser.GameObjects.Rectangle[] = [];
+                                    for (let i = 0; i < 20; i++) {
+                                        const r = this.add.rectangle(
+                                            Math.random() * 800,
+                                            Math.random() * 600,
+                                            Math.random() * 200,
+                                            Math.random() * 50,
+                                            Math.random() > 0.5 ? 0xff0000 : 0x0000ff
+                                        ).setDepth(200);
+                                        glitchRects.push(r);
+                                    }
+
+                                    this.time.addEvent({
+                                        delay: 50,
+                                        repeat: 10,
+                                        callback: () => {
+                                            glitchRects.forEach(r => {
+                                                r.setPosition(Math.random() * 800, Math.random() * 600);
+                                                r.setVisible(!r.visible);
+                                            });
+                                        }
+                                    });
+
+                                    this.time.delayedCall(1000, () => {
+                                        onVictory();
+                                    });
+                                });
+                            }
+                        }, undefined, this);
                     }
                 }, undefined, this);
 
@@ -212,8 +285,12 @@ const My_PacMan: React.FC<PacManProps> = ({ onVictory, onGameOver }) => {
                         e.setTint(0x0000ff);
                     });
 
-                    this.time.delayedCall(10000, () => {
+                    if (currentPowerTimer) {
+                        currentPowerTimer.remove(false);
+                    }
+                    currentPowerTimer = this.time.delayedCall(10000, () => {
                         isSuperMode = false;
+                        currentPowerTimer = null;
                         ennemis.getChildren().forEach((e: any) => {
                             e.visible = false;
                             e.clearTint();
