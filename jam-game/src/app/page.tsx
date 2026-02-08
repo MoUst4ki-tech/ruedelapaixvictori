@@ -12,28 +12,30 @@ const Quiz = dynamic(() => import('@/components/quiz'), { ssr: false });
 
 export default function Home() {
   const [gameIndex, setGameIndex] = useState(0);
+  const [isVictory, setIsVictory] = useState(false);
   const [showGlitch, setShowGlitch] = useState(false);
   // UseState to force component remount
   const [resetKey, setResetKey] = useState(0);
 
   const handleVictory = () => {
+    setIsVictory(true);
     setShowGlitch(true);
   };
 
   const handleGlitchComplete = () => {
     setShowGlitch(false);
-    // gameIndex: 0=Pong, 1=Snake, 2=PacMan, 3=Noe, 4=Quiz
-    setGameIndex((prev) => (prev + 1) % 5);
+    // gameIndex: 0=Pong, 1=Snake, 2=Noe, 3=Quiz, 4=PacMan
+    if (isVictory) {
+      setGameIndex((prev) => (prev + 1) % 5);
+    } else {
+      setGameIndex(0);
+    }
     setResetKey(prev => prev + 1);
   };
 
   const handleGameOver = () => {
+    setIsVictory(false);
     setShowGlitch(true);
-    setTimeout(() => {
-      setGameIndex(0);
-      setResetKey(prev => prev + 1);
-      setShowGlitch(false);
-    }, 1000);
   };
 
   const renderGame = () => {
@@ -50,11 +52,11 @@ export default function Home() {
       case 1:
         return <div className="border-4 border-green-500 p-2 rounded-lg bg-black"><SnakeGame key={key} {...commonProps} /></div>;
       case 2:
-        return <div className="border-4 border-yellow-500 p-2 rounded-lg bg-black"><PacMan key={key} {...commonProps} /></div>;
+        return <div className="border-4 border-yellow-500 p-2 rounded-lg bg-black"><NoeGame key={key} {...commonProps} /></div>;
       case 3:
-        return <div className="border-4 border-red-500 p-2 rounded-lg bg-black"><NoeGame key={key} {...commonProps} /></div>;
+        return <div className="border-4 border-red-500 p-2 rounded-lg bg-black"><Quiz key={key} {...commonProps} /></div>;
       case 4:
-        return <div className="border-4 border-purple-500 p-2 rounded-lg bg-black"><Quiz key={key} {...commonProps} /></div>;
+        return <div className="border-4 border-purple-500 p-2 rounded-lg bg-black"><PacMan key={key} {...commonProps} /></div>;
       default:
         return <Pong key={key} {...commonProps} />;
     }

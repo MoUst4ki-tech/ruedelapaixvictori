@@ -126,14 +126,14 @@ const SnakeGame: React.FC<SnakeGameProps> = ({ onVictory, onGameOver }) => {
       const newSnake = [newHead, ...snake];
 
       if (newHead.x === food.x && newHead.y === food.y) {
-        setScore(s => {
-          const newScore = s + 1;
-          if (newScore >= 5) {
-            setIsWon(true);
-            onVictory();
-          }
-          return newScore;
-        });
+        const newScore = score + 1;
+        setScore(newScore);
+
+        if (newScore >= 5) {
+          setIsWon(true);
+          onVictory();
+        }
+
         setFood({
           x: Math.floor(Math.random() * (CANVAS_WIDTH / GRID_SIZE)),
           y: Math.floor(Math.random() * (CANVAS_HEIGHT / GRID_SIZE)),
@@ -180,7 +180,7 @@ const SnakeGame: React.FC<SnakeGameProps> = ({ onVictory, onGameOver }) => {
 
     const gameLoop = setInterval(moveSnake, speed);
     return () => clearInterval(gameLoop);
-  }, [direction, food, isGameOver, speed, isLagging, isWon, snake, deadPixels, onVictory, onGameOver]);
+  }, [direction, food, isGameOver, speed, isLagging, isWon, snake, deadPixels, onVictory, onGameOver, score]);
 
   useEffect(() => {
     const ctx = canvasRef.current?.getContext('2d');

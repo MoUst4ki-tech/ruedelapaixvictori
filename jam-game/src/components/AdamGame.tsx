@@ -15,7 +15,7 @@ const Pong: React.FC<PongProps> = ({ onVictory, onGameOver }) => {
       const config: Phaser.Types.Core.GameConfig = {
         type: Phaser.AUTO,
         width: 800,
-        height: 400,
+        height: 600,
         parent: gameContainer.current,
         physics: {
           default: 'arcade',
@@ -52,16 +52,8 @@ const Pong: React.FC<PongProps> = ({ onVictory, onGameOver }) => {
   let scoreTextPc: Phaser.GameObjects.Text;
   let infoText: Phaser.GameObjects.Text;
 
-  let velocityX = Phaser.Math.Between(-200, 200);
-  if (Math.abs(velocityX) < 100) velocityX = 200 * (Math.random() > 0.5 ? 1 : -1);
-  let velocityY = 200;
-
   function preload(this: Phaser.Scene) {
     const graphics = this.make.graphics({ x: 0, y: 0 });
-
-    graphics.fillStyle(0xffffff, 1);
-    graphics.fillRect(0, 0, 10, 400);
-    graphics.generateTexture('separator', 4, 400);
 
     graphics.clear();
     graphics.fillStyle(0x0000ff, 1);
@@ -80,23 +72,22 @@ const Pong: React.FC<PongProps> = ({ onVictory, onGameOver }) => {
   }
 
   function create(this: Phaser.Scene) {
-    this.add.rectangle(400, 200, 800, 400, 0x000000);
-    this.add.tileSprite(400, 200, 4, 400, 'separator').setAlpha(0.5);
+    this.add.rectangle(400, 300, 800, 600, 0x000000);
 
     if (this.input.keyboard) {
       cursors = this.input.keyboard.createCursorKeys();
     }
 
-    player = this.physics.add.sprite(780, 200, 'playerTx');
+    player = this.physics.add.sprite(30, 300, 'playerTx');
     player.setCollideWorldBounds(true);
     player.setImmovable(true);
 
-    pc = this.physics.add.sprite(20, 200, 'pcTx');
+    pc = this.physics.add.sprite(770, 300, 'pcTx');
     pc.setCollideWorldBounds(true);
     pc.setImmovable(true);
 
-    ball = this.physics.add.sprite(400, 200, 'ballTx');
-    ball.setCollideWorldBounds(true);
+    ball = this.physics.add.sprite(400, 300, 'ballTx');
+    ball.setCollideWorldBounds(false);
     ball.setBounce(1);
 
     resetBall(this);
@@ -104,50 +95,59 @@ const Pong: React.FC<PongProps> = ({ onVictory, onGameOver }) => {
     this.physics.add.collider(ball, player, hitPlayer, undefined, this);
     this.physics.add.collider(ball, pc, hitPc, undefined, this);
 
-    scoreTextPc = this.add.text(16, 16, 'Score: 0', { fontSize: '32px', color: '#F00' });
-    scoreTextPlayer = this.add.text(550, 16, 'Score: 0', { fontSize: '32px', color: '#00F' });
+    scoreTextPlayer = this.add.text(16, 16, 'Player: 0', { fontSize: '32px', color: '#00F' });
+    scoreTextPc = this.add.text(550, 16, 'CPU: 0', { fontSize: '32px', color: '#F00' });
 
-    infoText = this.add.text(400, 380, 'Lose to Win (First to 5)', { fontSize: '16px', color: '#fff' }).setOrigin(0.5);
+    infoText = this.add.text(400, 560, 'Lose to Win (First to 5)', { fontSize: '16px', color: '#fff' }).setOrigin(0.5);
   }
 
   function update(this: Phaser.Scene) {
+    if (!player?.body || !pc?.body || !ball?.body || !cursors) {
+      return;
+    }
+
     if (cursors.up.isDown) {
-      player.setVelocityY(-300);
+      player.setVelocityY(-350);
     } else if (cursors.down.isDown) {
-      player.setVelocityY(300);
+      player.setVelocityY(350);
     } else {
       player.setVelocityY(0);
     }
 
-    if (ball.y < pc.y - 10) {
-      pc.setVelocityY(-250);
-    } else if (ball.y > pc.y + 10) {
-      pc.setVelocityY(250);
+    if (ball.y < pc.y - 15) {
+      pc.setVelocityY(-280);
+    } else if (ball.y > pc.y + 15) {
+      pc.setVelocityY(280);
     } else {
       pc.setVelocityY(0);
     }
 
-    if (ball.x > 800) {
-      scorePc += 1;
-      scoreTextPc.setText('Score: ' + scorePc);
+    if (ball.y < 10) {
+      ball.setVelocityY(Math.abs(ball.body.velocity.y));
+    }
+    if (ball.y > 590) {
+      ball.setVelocityY(-Math.abs(ball.body.velocity.y));
+    }
 
-      if (scorePc >= 5) {
-        infoText.setText('DEFEAT... (Glitch: Success)');
+    if (ball.x > 850) {
+      scorePlayer += 1;
+      scoreTextPlayer.setText('Player: ' + scorePlayer);
+      if (scorePlayer >= 5) {
+        infoText.setText('VICTORY! (Glitch: Reset)');
         this.physics.pause();
-        setTimeout(() => onGameOver(), 1000);
+        setTimeout(() => onVictory(), 1000);
       } else {
         resetBall(this);
       }
     }
 
-    if (ball.x < 0) {
-      scorePlayer += 1;
-      scoreTextPlayer.setText('Score: ' + scorePlayer);
-
-      if (scorePlayer >= 5) {
-        infoText.setText('VICTORY! (Glitch: Reset)');
+    if (ball.x < -50) {
+      scorePc += 1;
+      scoreTextPc.setText('CPU: ' + scorePc);
+      if (scorePc >= 5) {
+        infoText.setText('DEFEAT... (Glitch: Success)');
         this.physics.pause();
-        setTimeout(() => onVictory(), 1000);
+        setTimeout(() => onGameOver(), 1000);
       } else {
         resetBall(this);
       }
@@ -157,25 +157,22 @@ const Pong: React.FC<PongProps> = ({ onVictory, onGameOver }) => {
   function hitPlayer(b: any, p: any) {
     const currentVel = b.body.velocity.x;
     let newVel = Math.abs(currentVel) + 50;
-    if (newVel > 800) newVel = 800;
-
-    b.setVelocityX(-newVel);
+    if (newVel > 900) newVel = 900;
+    b.setVelocityX(newVel);
   }
 
   function hitPc(b: any, p: any) {
     const currentVel = b.body.velocity.x;
     let newVel = Math.abs(currentVel) + 50;
-    if (newVel > 800) newVel = 800;
-
-    b.setVelocityX(newVel);
+    if (newVel > 900) newVel = 900;
+    b.setVelocityX(-newVel);
   }
 
   function resetBall(scene: Phaser.Scene) {
-    ball.setPosition(400, 200);
+    ball.setPosition(400, 300);
     const dirX = Math.random() > 0.5 ? 1 : -1;
     const dirY = Math.random() > 0.5 ? 1 : -1;
-
-    ball.setVelocity(250 * dirX, 250 * dirY);
+    ball.setVelocity(300 * dirX, 300 * dirY);
   }
 
   return (
