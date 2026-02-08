@@ -64,6 +64,19 @@ const Game = () => {
 
         platforms = this.physics.add.staticGroup();
 
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') cursors.left.isDown = true;
+            if (e.key === 'ArrowRight') cursors.right.isDown = true;
+            if (e.key === 'ArrowUp') cursors.up.isDown = true;
+            if (e.key === 'ArrowDown') cursors.down.isDown = true;
+        });
+    
+        window.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowLeft') cursors.left.isDown = false;
+            if (e.key === 'ArrowRight') cursors.right.isDown = false;
+            if (e.key === 'ArrowUp') cursors.up.isDown = false;
+            if (e.key === 'ArrowDown') cursors.down.isDown = false;
+        });
         platforms.create(400, 568, 'ground').setScale(2).refreshBody();
         platforms.create(600, 400, 'ground');
         platforms.create(50, 250, 'ground');

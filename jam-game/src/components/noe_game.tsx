@@ -30,7 +30,13 @@ const MarioGame: React.FC<MarioGameProps> = ({ onVictory, onGameOver }) => {
                 default: 'arcade',
                 arcade: {
                     gravity: { y: 1000, x: 0 },
-                    debug: false
+                    debug: false,
+                    checkCollision: { up: true, down: true, left: true, right: true }
+                }
+            },
+            input: {
+                keyboard: {
+                    capture: []
                 }
             },
             scene: {
@@ -133,9 +139,23 @@ const MarioGame: React.FC<MarioGameProps> = ({ onVictory, onGameOver }) => {
             const levelWidth = chunkWidth * totalChunks;
             this.physics.world.setBounds(0, 0, levelWidth, 600);
 
+            const graphics = this.make.graphics({ x: 0, y: 0 });
             const bg = this.add.image(400, 300, 'background');
             bg.setScrollFactor(0);
 
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowLeft') cursors.left.isDown = true;
+                if (e.key === 'ArrowRight') cursors.right.isDown = true;
+                if (e.key === 'ArrowUp') cursors.up.isDown = true;
+                if (e.key === 'ArrowDown') cursors.down.isDown = true;
+            });
+
+            window.addEventListener('keyup', (e) => {
+                if (e.key === 'ArrowLeft') cursors.left.isDown = false;
+                if (e.key === 'ArrowRight') cursors.right.isDown = false;
+                if (e.key === 'ArrowUp') cursors.up.isDown = false;
+                if (e.key === 'ArrowDown') cursors.down.isDown = false;
+            });
             // 2. Création des Plateformes
             platforms = this.physics.add.staticGroup();
             const ground = this.add.tileSprite(levelWidth / 2, 584, levelWidth, 100, 'ground');
@@ -281,10 +301,9 @@ const MarioGame: React.FC<MarioGameProps> = ({ onVictory, onGameOver }) => {
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', backgroundColor: '#333', padding: '20px', minHeight: '100vh' }}>
-            <h2 style={{ color: 'white', marginBottom: '10px' }}>Mario: The Glitch Loop</h2>
+            <h2 style={{ color: 'white', marginBottom: '10px' }}></h2>
             <div ref={gameContainer} style={{ border: '4px solid #555', borderRadius: '8px', overflow: 'hidden' }} />
             <p style={{ color: '#aaa', marginTop: '10px' }}>
-                Trouvez la faille avant que la boucle temporelle (15s) ne vous ramène au début.
             </p>
         </div>
     );
