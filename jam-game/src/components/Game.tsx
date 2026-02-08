@@ -14,6 +14,13 @@ const Game = () => {
                 width: 800,
                 height: 600,
                 parent: gameContainer.current,
+                physics: {
+                    default: 'arcade',
+                    arcade: {
+                        gravity: { y: 600, x: 0 },
+                        debug: false
+                    }
+                },
                 scene: {
                     preload: preload,
                     create: create,
@@ -33,53 +40,91 @@ const Game = () => {
     }, []);
 
     function preload(this: Phaser.Scene) {
-        // Load assets here
+        this.load.image('ground', 'https://labs.phaser.io/assets/sprites/platform.png');
+        this.load.image('mario_stand', '/mario/standing_up.png');
+        this.load.image('mario_walk', '/mario/walk.png');
+        this.load.image('mario_jump', '/mario/jump.png');
     }
+
+    let player: Phaser.Physics.Arcade.Sprite;
+    let cursors: Phaser.Types.Input.Keyboard.CursorKeys;
+    let platforms: Phaser.Physics.Arcade.StaticGroup;
 
     function create(this: Phaser.Scene) {
-        const button = this.add.text(400, 300, 'Catch Me!', {
-            fontSize: '32px',
-            color: '#fff',
-            backgroundColor: '#ff0000',
-            padding: { x: 10, y: 5 }
-        })
-            .setOrigin(0.5)
-            .setInteractive();
+        this.add.rectangle(400, 300, 800, 600, 0x87CEEB);
 
-        button.on('pointerdown', () => {
-            button.setText('Ouch!');
-            button.setBackgroundColor('#00ff00');
-            moveButton(button, this);
-        });
-        moveButton(button, this);
+        platforms = this.physics.add.staticGroup();
+
+        platforms.create(400, 568, 'ground').setScale(2).refreshBody();
+        platforms.create(600, 400, 'ground');
+        platforms.create(50, 250, 'ground');
+        platforms.create(750, 220, 'ground');
+
+        player = this.physics.add.sprite(100, 450, 'mario_stand');
+        player.setCollideWorldBounds(true);
+
+        player.setScale(0.15);
+
+        this.physics.add.collider(player, platforms);
+
+        if (this.input.keyboard) {
+            cursors = this.input.keyboard.createCursorKeys();
+        }
     }
 
-    function moveButton(button: Phaser.GameObjects.Text, scene: Phaser.Scene) {
-        const x = Phaser.Math.Between(100, 700);
-        const y = Phaser.Math.Between(100, 500);
+    function update(this: Phaser.Scene, time: number, delta: number) {
+        if (!cursors || !player) return;
 
-        scene.tweens.add({
-            targets: button,
-            x: x,
-            y: y,
-            duration: 1000,
-            ease: 'Power2',
-            onComplete: () => {
-                if (Math.random() > 0.5) {
-                    moveButton(button, scene);
-                } else {
-                    scene.time.delayedCall(500, () => {
-                        button.setText('Catch Me!');
-                        button.setBackgroundColor('#ff0000');
-                        moveButton(button, scene);
-                    });
+        const onGround = player.body?.touching.down || player.body?.blocked.down;
+
+        if (cursors.left.isDown) {
+            player.setVelocityX(-260);
+            player.setFlipX(true);
+
+            if (onGround) {
+                if (player.texture.key !== 'mario_walk') {
+                    player.setTexture('mario_walk');
+                }
+            } else {
+                if (player.texture.key !== 'mario_jump') {
+                    player.setTexture('mario_jump');
                 }
             }
-        });
-    }
+        }
+        else if (cursors.right.isDown) {
+            player.setVelocityX(260);
+            player.setFlipX(false);
 
-    function update(this: Phaser.Scene) {
-        // Game loop logic
+            if (onGround) {
+                if (player.texture.key !== 'mario_walk') {
+                    player.setTexture('mario_walk');
+                }
+            } else {
+                if (player.texture.key !== 'mario_jump') {
+                    player.setTexture('mario_jump');
+                }
+            }
+        }
+        else {
+            player.setVelocityX(0);
+
+            if (onGround) {
+                if (player.texture.key !== 'mario_stand') {
+                    player.setTexture('mario_stand');
+                }
+            } else {
+                if (player.texture.key !== 'mario_jump') {
+                    player.setTexture('mario_jump');
+                }
+            }
+        }
+
+        if (cursors.up.isDown && onGround) {
+            player.setVelocityY(-430); // Jump strength
+            if (player.texture.key !== 'mario_jump') {
+                player.setTexture('mario_jump');
+            }
+        }
     }
 
     return (
